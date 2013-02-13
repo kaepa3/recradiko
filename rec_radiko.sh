@@ -141,6 +141,8 @@ rtmpdump -v \
          --flv "/tmp/${channel}_${date}"
 
 ffmpeg -y -i "/tmp/${channel}_${date}" -acodec libmp3lame -ab 128k "${outdir}/${channel}_${date}.mp3"
+# 再エンコしない (AAC) 場合
+# ffmpeg -y -i "/tmp/${channel}_${date}" -acodec copy "${outdir}/${channel}_${date}.aac"
 if [ $? = 0 ]; then
   rm -f "/tmp/${channel}_${date}"
 fi
