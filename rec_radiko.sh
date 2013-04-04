@@ -1,22 +1,30 @@
 #!/bin/sh
 
+LANG=ja_JP.utf8
+
 pid=$$
 date=`date '+%Y-%m-%d-%H:%M'`
 playerurl=http://radiko.jp/player/swf/player_3.0.0.01.swf
 playerfile="/tmp/player.swf"
 keyfile="/tmp/authkey.png"
 
-if [ $# -eq 2 ]; then
-  channel=$1
-  DURATION=`expr $2 \* 60`
-  outdir="."
-elif [ $# -eq 3 ]; then
-  channel=$1
-  DURATION=`expr $2 \* 60`
-  outdir=$3
-else
-  echo "usage : $0 channel_name duration(minuites) [outputdir]"
+outdir="."
+
+if [ $# -le 1 ]; then
+  echo "usage : $0 channel_name duration(minuites) [outputdir] [prefix]"
   exit 1
+fi
+
+if [ $# -ge 2 ]; then
+  channel=$1
+  DURATION=`expr $2 \* 60`
+fi
+if [ $# -ge 3 ]; then
+  outdir=$3
+fi
+PREFIX=${channel}
+if [ $# -ge 4 ]; then
+  PREFIX=$4
 fi
 
 #
@@ -76,7 +84,7 @@ length=`perl -ne 'print $1 if(/x-radiko-keylength: (\d+)/i)' auth1_fms_${pid}`
 
 partialkey=`dd if=$keyfile bs=1 skip=${offset} count=${length} 2> /dev/null | base64`
 
-echo "authtoken: ${authtoken} \noffset: ${offset} length: ${length} \npartialkey: $partialkey"
+#echo "authtoken: ${authtoken} \noffset: ${offset} length: ${length} \npartialkey: $partialkey"
 
 rm -f auth1_fms_${pid}
 
@@ -105,10 +113,10 @@ if [ $? -ne 0 -o ! -f auth2_fms_${pid} ]; then
   exit 1
 fi
 
-echo "authentication success"
+#echo "authentication success"
 
 areaid=`perl -ne 'print $1 if(/^([^,]+),/i)' auth2_fms_${pid}`
-echo "areaid: $areaid"
+#echo "areaid: $areaid"
 
 rm -f auth2_fms_${pid}
 
@@ -130,7 +138,8 @@ rm -f ${channel}.xml
 #
 # rtmpdump
 #
-rtmpdump -v \
+#rtmpdump -q \
+rtmpdump \
          -r ${url_parts[0]} \
          --app ${url_parts[1]} \
          --playpath ${url_parts[2]} \
@@ -140,9 +149,7 @@ rtmpdump -v \
          --stop ${DURATION} \
          --flv "/tmp/${channel}_${date}"
 
-ffmpeg -y -i "/tmp/${channel}_${date}" -acodec libmp3lame -ab 128k "${outdir}/${channel}_${date}.mp3"
-# 再エンコしない (AAC) 場合
-# ffmpeg -y -i "/tmp/${channel}_${date}" -acodec copy "${outdir}/${channel}_${date}.aac"
+ffmpeg -loglevel quiet -y -i "/tmp/${channel}_${date}" -acodec libmp3lame -ab 128k "${outdir}/${PREFIX}_${date}.mp3"
 if [ $? = 0 ]; then
   rm -f "/tmp/${channel}_${date}"
 fi
