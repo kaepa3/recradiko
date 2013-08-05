@@ -3,7 +3,7 @@
 LANG=ja_JP.utf8
 
 pid=$$
-date=`date '+%Y-%m-%d-%H:%M'`
+date=`date '+%Y-%m-%d-%H_%M'`
 playerurl=http://radiko.jp/player/swf/player_3.0.0.01.swf
 playerfile="/tmp/player.swf"
 keyfile="/tmp/authkey.png"
