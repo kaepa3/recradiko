@@ -4,7 +4,7 @@ LANG=ja_JP.utf8
 
 pid=$$
 date=`date '+%Y-%m-%d-%H_%M'`
-playerurl=http://radiko.jp/player/swf/player_3.0.0.01.swf
+playerurl=http://radiko.jp/apps/js/flash/myplayer-release.swf
 playerfile="/tmp/player.swf"
 keyfile="/tmp/authkey.png"
 
@@ -43,7 +43,7 @@ fi
 # get keydata (need swftool)
 #
 if [ ! -f $keyfile ]; then
-  swfextract -b 14 $playerfile -o $keyfile
+  swfextract -b 12 $playerfile -o $keyfile
 
   if [ ! -f $keyfile ]; then
     echo "failed get keydata"
@@ -60,8 +60,8 @@ fi
 #
 wget -q \
      --header="pragma: no-cache" \
-     --header="X-Radiko-App: pc_1" \
-     --header="X-Radiko-App-Version: 2.0.1" \
+     --header="X-Radiko-App: pc_ts" \
+     --header="X-Radiko-App-Version: 4.0.0" \
      --header="X-Radiko-User: test-stream" \
      --header="X-Radiko-Device: pc" \
      --post-data='\r\n' \
@@ -74,35 +74,35 @@ if [ $? -ne 0 ]; then
   echo "failed auth1 process"
   exit 1
 fi
-
+  
 #
 # get partial key
-#
+#   
 authtoken=`perl -ne 'print $1 if(/x-radiko-authtoken: ([\w-]+)/i)' auth1_fms_${pid}`
 offset=`perl -ne 'print $1 if(/x-radiko-keyoffset: (\d+)/i)' auth1_fms_${pid}`
 length=`perl -ne 'print $1 if(/x-radiko-keylength: (\d+)/i)' auth1_fms_${pid}`
-
+  
 partialkey=`dd if=$keyfile bs=1 skip=${offset} count=${length} 2> /dev/null | base64`
 
 #echo "authtoken: ${authtoken} \noffset: ${offset} length: ${length} \npartialkey: $partialkey"
 
 rm -f auth1_fms_${pid}
 
-if [ -f auth2_fms_${pid} ]; then
+if [ -f auth2_fms_${pid} ]; then  
   rm -f auth2_fms_${pid}
 fi
-
+     
 #
 # access auth2_fms
 #
 wget -q \
      --header="pragma: no-cache" \
-     --header="X-Radiko-App: pc_1" \
-     --header="X-Radiko-App-Version: 2.0.1" \
+     --header="X-Radiko-App: pc_ts" \
+     --header="X-Radiko-App-Version: 4.0.0" \
      --header="X-Radiko-User: test-stream" \
      --header="X-Radiko-Device: pc" \
-     --header="X-Radiko-Authtoken: ${authtoken}" \
-     --header="X-Radiko-Partialkey: ${partialkey}" \
+     --header="X-Radiko-AuthToken: ${authtoken}" \
+     --header="X-Radiko-PartialKey: ${partialkey}" \
      --post-data='\r\n' \
      --no-check-certificate \
      -O auth2_fms_${pid} \
@@ -110,31 +110,31 @@ wget -q \
 
 if [ $? -ne 0 -o ! -f auth2_fms_${pid} ]; then
   echo "failed auth2 process"
-  exit 1
+  exit 1  
 fi
-
+         
 #echo "authentication success"
-
+         
 areaid=`perl -ne 'print $1 if(/^([^,]+),/i)' auth2_fms_${pid}`
 #echo "areaid: $areaid"
-
+         
 rm -f auth2_fms_${pid}
-
+  
 #
 # get stream-url
 #
-
+  
 if [ -f ${channel}.xml ]; then
   rm -f ${channel}.xml
 fi
-
+     
 wget -q "http://radiko.jp/v2/station/stream/${channel}.xml"
-
+     
 stream_url=`echo "cat /url/item[1]/text()" | xmllint --shell ${channel}.xml | tail -2 | head -1`
 url_parts=(`echo ${stream_url} | perl -pe 's!^(.*)://(.*?)/(.*)/(.*?)$/!$1://$2 $3 $4!'`)
-
+     
 rm -f ${channel}.xml
-
+     
 #
 # rtmpdump
 #
@@ -148,7 +148,7 @@ rtmpdump \
          --live \
          --stop ${DURATION} \
          --flv "/tmp/${channel}_${date}"
-
+  
 ffmpeg -loglevel quiet -y -i "/tmp/${channel}_${date}" -acodec libmp3lame -ab 128k "${outdir}/${PREFIX}_${date}.mp3"
 if [ $? = 0 ]; then
   rm -f "/tmp/${channel}_${date}"
