@@ -150,6 +150,13 @@ rtmpdump \
          --flv "/tmp/${channel}_${date}"
 
 ffmpeg -loglevel quiet -y -i "/tmp/${channel}_${date}" -acodec libmp3lame -ab 128k "${outdir}/${PREFIX}_${date}.mp3"
+
 if [ $? = 0 ]; then
+  echo "${outdir}/${PREFIX}_${date}.mp3"
+  whoami
+  item="${outdir}/${PREFIX}_${date}.mp3"
+  echo $item
+  /home/pi/go/bin/skicka upload "$item" rec/ 
   rm -f "/tmp/${channel}_${date}"
 fi
+
